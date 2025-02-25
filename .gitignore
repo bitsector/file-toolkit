@@ -1,0 +1,13 @@
+# Ignore everything by default
+*
+
+# Unignore any file that has an extension
+!*.*
+
+# Unignore all directories so that files within them can be evaluated
+!*/
+
+# Explicitly ignore image formats (except .webp)
+*.jpg
+*.jpeg
+*.png
