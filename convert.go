@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"image"
 	"image/jpeg"
 	"image/png"
 	"os"
@@ -11,8 +12,52 @@ import (
 	"golang.org/x/image/webp"
 )
 
+// convertJPG converts the decoded image into a JPEG file at outPath.
+func convertJPG(img image.Image, outPath string) error {
+	outFile, err := os.Create(outPath)
+	if err != nil {
+		return fmt.Errorf("unable to create jpg file: %w", err)
+	}
+	defer outFile.Close()
+
+	// Encode the image as JPEG with quality 100.
+	if err := jpeg.Encode(outFile, img, &jpeg.Options{Quality: 100}); err != nil {
+		return fmt.Errorf("failed to encode jpg: %w", err)
+	}
+	return nil
+}
+
+// convertPNG converts the decoded image into a PNG file at outPath.
+func convertPNG(img image.Image, outPath string) error {
+	outFile, err := os.Create(outPath)
+	if err != nil {
+		return fmt.Errorf("unable to create png file: %w", err)
+	}
+	defer outFile.Close()
+
+	// Encode the image as PNG.
+	if err := png.Encode(outFile, img); err != nil {
+		return fmt.Errorf("failed to encode png: %w", err)
+	}
+	return nil
+}
+
+// logFileSizes prints the file sizes (in bytes) of all provided file paths.
+func logFileSizes(paths ...string) error {
+	for _, p := range paths {
+		info, err := os.Stat(p)
+		if err != nil {
+			return fmt.Errorf("failed to get file stats for %s: %w", p, err)
+		}
+		fmt.Printf("%s size: %d bytes\n", filepath.Base(p), info.Size())
+	}
+	return nil
+}
+
+// confvert reads a .webp file, decodes it, and converts it to both JPEG and PNG formats.
+// It then logs the file sizes for the original and converted images.
 func confvert(filePath string) error {
-	// Check if the provided file has a .webp extension.
+	// Ensure the file has a ".webp" extension.
 	if strings.ToLower(filepath.Ext(filePath)) != ".webp" {
 		return fmt.Errorf("provided file is not a .webp file")
 	}
@@ -30,51 +75,24 @@ func confvert(filePath string) error {
 		return fmt.Errorf("failed to decode webp image: %w", err)
 	}
 
-	// Generate the output filenames for JPG and PNG.
+	// Generate output file names for JPEG and PNG.
 	base := strings.TrimSuffix(filePath, filepath.Ext(filePath))
 	jpgFile := base + ".jpg"
 	pngFile := base + ".png"
 
-	// Create and encode the JPEG version.
-	jf, err := os.Create(jpgFile)
-	if err != nil {
-		return fmt.Errorf("unable to create jpg file: %w", err)
+	// Convert and save the image as JPEG.
+	if err := convertJPG(img, jpgFile); err != nil {
+		return err
 	}
-	if err = jpeg.Encode(jf, img, &jpeg.Options{Quality: 100}); err != nil {
-		jf.Close()
-		return fmt.Errorf("failed to encode jpg: %w", err)
-	}
-	jf.Close()
-
-	// Create and encode the PNG version.
-	pf, err := os.Create(pngFile)
-	if err != nil {
-		return fmt.Errorf("unable to create png file: %w", err)
-	}
-	if err = png.Encode(pf, img); err != nil {
-		pf.Close()
-		return fmt.Errorf("failed to encode png: %w", err)
-	}
-	pf.Close()
-
-	// Get file sizes for the original WebP, JPG, and PNG files.
-	webpInfo, err := os.Stat(filePath)
-	if err != nil {
-		return fmt.Errorf("failed to get file stats for webp: %w", err)
-	}
-	jpgInfo, err := os.Stat(jpgFile)
-	if err != nil {
-		return fmt.Errorf("failed to get file stats for jpg: %w", err)
-	}
-	pngInfo, err := os.Stat(pngFile)
-	if err != nil {
-		return fmt.Errorf("failed to get file stats for png: %w", err)
+	// Convert and save the image as PNG.
+	if err := convertPNG(img, pngFile); err != nil {
+		return err
 	}
 
-	// Print the file sizes for all three images.
-	fmt.Printf("%s size: %d bytes\n", filepath.Base(filePath), webpInfo.Size())
-	fmt.Printf("%s size: %d bytes\n", filepath.Base(jpgFile), jpgInfo.Size())
-	fmt.Printf("%s size: %d bytes\n", filepath.Base(pngFile), pngInfo.Size())
+	// Log file sizes for the original WebP, JPEG, and PNG.
+	if err := logFileSizes(filePath, jpgFile, pngFile); err != nil {
+		return err
+	}
 
 	return nil
 }
