@@ -1,4 +1,4 @@
-module webp-converter
+module github.com/bitsector/webp-converter
 
 go 1.23
 
