@@ -4,13 +4,9 @@ import (
 	"bytes"
 	"image/jpeg"
 	"net/http"
-	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 
-	"github.com/joho/godotenv"
-	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"golang.org/x/image/webp"
 	"golang.org/x/net/http2"
@@ -25,43 +21,6 @@ var (
 	serverPort string
 	bufferSize int64
 )
-
-func init() {
-	if err := godotenv.Load(); err != nil {
-		log.Warn().Msg("No .env file found, using defaults")
-	}
-
-	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
-	zerolog.SetGlobalLevel(zerolog.InfoLevel)
-
-	if err := os.MkdirAll(uploadPath, 0755); err != nil {
-		log.Fatal().Err(err).Msg("Failed to create upload directory")
-	}
-
-	bufferSizeStr := os.Getenv("BUFFER_SIZE")
-	if bufferSizeStr == "" {
-		bufferSize = 10 << 20
-	} else {
-		val, err := strconv.ParseInt(bufferSizeStr, 10, 64)
-		if err != nil {
-			log.Warn().Err(err).Msg("Invalid BUFFER_SIZE value, using default (10MB)")
-			bufferSize = 10 << 20
-		} else {
-			bufferSize = val
-		}
-	}
-
-	port := os.Getenv("PORT")
-	if port == "" {
-		serverPort = ":3000"
-	} else {
-		if port[0] != ':' {
-			serverPort = ":" + port
-		} else {
-			serverPort = port
-		}
-	}
-}
 
 func convertHandler(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseMultipartForm(bufferSize); err != nil {
@@ -93,7 +52,6 @@ func convertHandler(w http.ResponseWriter, r *http.Request) {
 
 	outputName := strings.TrimSuffix(header.Filename, filepath.Ext(header.Filename)) + ".jpg"
 
-	// Encode directly to buffer
 	var imgBuffer bytes.Buffer
 	if err := jpeg.Encode(&imgBuffer, img, &jpeg.Options{Quality: 95}); err != nil {
 		log.Error().Err(err).Msg("Error converting to JPEG")
@@ -101,7 +59,6 @@ func convertHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Send JPEG as response without saving to disk
 	w.Header().Set("Content-Type", "image/jpeg")
 	w.Header().Set("Content-Disposition", "attachment; filename="+outputName)
 	w.WriteHeader(http.StatusOK)
