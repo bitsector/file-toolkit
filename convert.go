@@ -97,15 +97,15 @@ func confvert(filePath string) error {
 	return nil
 }
 
-func main() {
-	if len(os.Args) != 2 {
-		fmt.Println("Usage: go run main.go <image.webp>")
-		os.Exit(1)
-	}
+// func main() {
+// 	if len(os.Args) != 2 {
+// 		fmt.Println("Usage: go run main.go <image.webp>")
+// 		os.Exit(1)
+// 	}
 
-	filePath := os.Args[1]
-	if err := confvert(filePath); err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-		os.Exit(1)
-	}
-}
+// 	filePath := os.Args[1]
+// 	if err := confvert(filePath); err != nil {
+// 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+// 		os.Exit(1)
+// 	}
+// }
