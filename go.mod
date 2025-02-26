@@ -5,6 +5,7 @@ go 1.23
 toolchain go1.23.6
 
 require (
+	github.com/joho/godotenv v1.5.1
 	github.com/rs/zerolog v1.33.0
 	golang.org/x/image v0.24.0
 	golang.org/x/net v0.28.0

@@ -6,8 +6,10 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
+	"github.com/joho/godotenv"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"golang.org/x/image/webp"
@@ -20,7 +22,17 @@ const (
 	outputPath = "./converted"
 )
 
+var (
+	serverPort string
+	bufferSize int64
+)
+
 func init() {
+	// Load environment variables from .env file.
+	if err := godotenv.Load(); err != nil {
+		log.Warn().Msg("No .env file found, using defaults")
+	}
+
 	// Set the zerolog time format and global logging level.
 	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
@@ -32,11 +44,38 @@ func init() {
 	if err := os.MkdirAll(outputPath, 0755); err != nil {
 		log.Fatal().Err(err).Msg("Failed to create output directory")
 	}
+
+	// Read buffer size from environment variable, default to 10MB if not set.
+	bufferSizeStr := os.Getenv("BUFFER_SIZE")
+	if bufferSizeStr == "" {
+		bufferSize = 10 << 20 // 10MB default
+	} else {
+		val, err := strconv.ParseInt(bufferSizeStr, 10, 64)
+		if err != nil {
+			log.Warn().Err(err).Msg("Invalid BUFFER_SIZE value, using default (10MB)")
+			bufferSize = 10 << 20
+		} else {
+			bufferSize = val
+		}
+	}
+
+	// Set server port, default to 3000 if not provided.
+	port := os.Getenv("PORT")
+	if port == "" {
+		serverPort = ":3000"
+	} else {
+		// Prepend ':' if not present.
+		if port[0] != ':' {
+			serverPort = ":" + port
+		} else {
+			serverPort = port
+		}
+	}
 }
 
 func convertHandler(w http.ResponseWriter, r *http.Request) {
-	// Parse multipart form with a maximum memory of 10MB.
-	if err := r.ParseMultipartForm(10 << 20); err != nil {
+	// Parse multipart form with the bufferSize specified.
+	if err := r.ParseMultipartForm(bufferSize); err != nil {
 		log.Error().Err(err).Msg("Error parsing form")
 		http.Error(w, "Error parsing form: "+err.Error(), http.StatusBadRequest)
 		return
@@ -101,11 +140,11 @@ func main() {
 
 	// Enable h2c (HTTP/2 without TLS) by wrapping the mux handler.
 	server := &http.Server{
-		Addr:    ":3000",
+		Addr:    serverPort,
 		Handler: h2c.NewHandler(mux, h2s),
 	}
 
-	log.Info().Msg("Starting HTTP/2 server on localhost:3000")
+	log.Info().Msgf("Starting HTTP/2 server on %s", serverPort)
 	if err := server.ListenAndServe(); err != nil {
 		log.Fatal().Err(err).Msg("Server failed")
 	}
