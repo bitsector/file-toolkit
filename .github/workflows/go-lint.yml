@@ -28,4 +28,4 @@ jobs:
 
       - name: Run gopls lint
         run: |
-          gopls check ./...
+          find . -name '*.go' -print0 | xargs -0 gopls check
