@@ -19,7 +19,6 @@ import (
 
 const (
 	uploadPath = "./uploads"
-	outputPath = "./converted"
 )
 
 var (
@@ -37,9 +36,6 @@ func init() {
 
 	if err := os.MkdirAll(uploadPath, 0755); err != nil {
 		log.Fatal().Err(err).Msg("Failed to create upload directory")
-	}
-	if err := os.MkdirAll(outputPath, 0755); err != nil {
-		log.Fatal().Err(err).Msg("Failed to create output directory")
 	}
 
 	bufferSizeStr := os.Getenv("BUFFER_SIZE")
@@ -96,9 +92,8 @@ func convertHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	outputName := strings.TrimSuffix(header.Filename, filepath.Ext(header.Filename)) + ".jpg"
-	outputFilePath := filepath.Join(outputPath, outputName)
 
-	// Encode to buffer first
+	// Encode directly to buffer
 	var imgBuffer bytes.Buffer
 	if err := jpeg.Encode(&imgBuffer, img, &jpeg.Options{Quality: 95}); err != nil {
 		log.Error().Err(err).Msg("Error converting to JPEG")
@@ -106,12 +101,7 @@ func convertHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Save to file (optional)
-	if err := os.WriteFile(outputFilePath, imgBuffer.Bytes(), 0644); err != nil {
-		log.Error().Err(err).Msg("Error saving output file")
-	}
-
-	// Send JPEG as response
+	// Send JPEG as response without saving to disk
 	w.Header().Set("Content-Type", "image/jpeg")
 	w.Header().Set("Content-Disposition", "attachment; filename="+outputName)
 	w.WriteHeader(http.StatusOK)
