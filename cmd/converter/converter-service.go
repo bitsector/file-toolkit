@@ -2,10 +2,12 @@ package main
 
 import (
 	"bytes"
+	"fmt"
 	"image/jpeg"
 	"net/http"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/rs/zerolog/log"
 	"golang.org/x/image/webp"
@@ -23,6 +25,8 @@ var (
 )
 
 func convertHandler(w http.ResponseWriter, r *http.Request) {
+	startTime := time.Now()
+
 	if err := r.ParseMultipartForm(bufferSize); err != nil {
 		log.Error().Err(err).Msg("Error parsing form")
 		http.Error(w, "Error parsing form: "+err.Error(), http.StatusBadRequest)
@@ -58,6 +62,17 @@ func convertHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Error converting to JPEG: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	// Conversion metrics
+	conversionDuration := time.Since(startTime)
+	originalSizeMB := float64(header.Size) / (1024 * 1024)
+	convertedSizeMB := float64(imgBuffer.Len()) / (1024 * 1024)
+
+	log.Info().
+		Str("original_size", fmt.Sprintf("%.2f MB (%d bytes)", originalSizeMB, header.Size)).
+		Str("converted_size", fmt.Sprintf("%.2f MB (%d bytes)", convertedSizeMB, imgBuffer.Len())).
+		Str("conversion_time", conversionDuration.String()).
+		Msg("File conversion completed")
 
 	w.Header().Set("Content-Type", "image/jpeg")
 	w.Header().Set("Content-Disposition", "attachment; filename="+outputName)
