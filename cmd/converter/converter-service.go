@@ -223,7 +223,9 @@ func convertHandler(w http.ResponseWriter, r *http.Request) {
 func healthHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(`{"status":"healthy","service":"webp-converter"}`))
+	if _, err := w.Write([]byte(`{"status":"healthy","service":"webp-converter"}`)); err != nil {
+		log.Error().Err(err).Msg("Error writing health check response")
+	}
 }
 
 func main() {

@@ -1,0 +1,51 @@
+run:
+  timeout: 5m
+  issues-exit-code: 1
+  tests: true
+  go: '1.24.1'
+
+linters-settings:
+  govet:
+    enable:
+      - shadow
+  gocyclo:
+    min-complexity: 15
+  lll:
+    line-length: 140
+  goimports:
+    local-prefixes: github.com/bitsector/webp-converter
+  funlen:
+    lines: 100
+    statements: 50
+
+linters:
+  disable-all: true
+  enable:
+    - errcheck
+    - gofmt
+    - goimports
+    - gosimple
+    - govet
+    - ineffassign
+    - staticcheck
+    - typecheck
+    - unused
+    - misspell
+    - unconvert
+    - gocyclo
+    - funlen
+    # Removed deprecated linters: deadcode, varcheck, structcheck
+
+issues:
+  exclude-rules:
+    - path: _test\.go
+      linters:
+        - funlen
+        - gocyclo
+    # Exclude some linters from running on tests files
+    - path: _test\.go
+      linters:
+        - gocyclo
+        - errcheck
+        - dupl
+        - gosec

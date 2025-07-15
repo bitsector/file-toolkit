@@ -1,8 +1,6 @@
 module github.com/bitsector/webp-converter
 
-go 1.23
-
-toolchain go1.23.6
+go 1.24.1
 
 require (
 	github.com/joho/godotenv v1.5.1
