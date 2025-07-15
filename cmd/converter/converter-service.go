@@ -18,17 +18,20 @@ import (
 	"golang.org/x/net/http2/h2c"
 )
 
-const (
-	uploadPath = "./uploads"
-	numWorkers = 5
-	jobTimeout = 30 * time.Second
-)
-
 var (
+	// Configuration variables set from environment
+	uploadPath          string
+	numWorkers          int
+	jobTimeout          time.Duration
+	workerResultTimeout time.Duration
+	jobQueueTimeout     time.Duration
+	jobQueueSize        int
+
+	// Existing variables
 	serverPort string
 	bufferSize int64
-	jobQueue   = make(chan ConversionJob, 100) // Buffered job channel
-	workerWg   sync.WaitGroup                  // Worker synchronization
+	jobQueue   chan ConversionJob // Buffered job channel
+	workerWg   sync.WaitGroup     // Worker synchronization
 )
 
 // ConversionJob represents a WebP conversion task
@@ -67,7 +70,7 @@ func worker(ctx context.Context) {
 			select {
 			case job.Result <- result:
 				// Result sent successfully
-			case <-time.After(1 * time.Second):
+			case <-time.After(workerResultTimeout):
 				// Timeout sending result, client may have disconnected
 				log.Warn().Str("job_id", job.ID).Msg("Failed to send result - client timeout")
 			}
@@ -168,7 +171,7 @@ func convertHandler(w http.ResponseWriter, r *http.Request) {
 	select {
 	case jobQueue <- job:
 		log.Info().Str("job_id", jobID).Str("filename", header.Filename).Msg("Job submitted to worker pool")
-	case <-time.After(100 * time.Millisecond):
+	case <-time.After(jobQueueTimeout):
 		log.Warn().Str("job_id", jobID).Msg("Job queue full - server busy")
 		http.Error(w, "Server busy, please try again later", http.StatusServiceUnavailable)
 		return
@@ -216,6 +219,13 @@ func convertHandler(w http.ResponseWriter, r *http.Request) {
 	close(resultChan)
 }
 
+// healthHandler provides a simple health check endpoint
+func healthHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(`{"status":"healthy","service":"webp-converter"}`))
+}
+
 func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -230,6 +240,7 @@ func main() {
 	// Setup HTTP routes
 	mux := http.NewServeMux()
 	mux.HandleFunc("/convert", convertHandler)
+	mux.HandleFunc("/health", healthHandler)
 
 	// Setup HTTP/2 server
 	h2s := &http2.Server{}
