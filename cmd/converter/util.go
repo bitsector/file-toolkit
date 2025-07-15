@@ -77,7 +77,7 @@ func init() {
 	jobQueue = make(chan ConversionJob, jobQueueSize)
 
 	// Create upload directory
-	if err := os.MkdirAll(uploadPath, 0755); err != nil {
+	if err := os.MkdirAll(uploadPath, 0750); err != nil {
 		log.Fatal().Err(err).Msg("Failed to create upload directory")
 	}
 

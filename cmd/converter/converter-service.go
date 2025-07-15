@@ -247,8 +247,12 @@ func main() {
 	// Setup HTTP/2 server
 	h2s := &http2.Server{}
 	server := &http.Server{
-		Addr:    serverPort,
-		Handler: h2c.NewHandler(mux, h2s),
+		Addr:              serverPort,
+		Handler:           h2c.NewHandler(mux, h2s),
+		ReadTimeout:       10 * time.Second,
+		WriteTimeout:      10 * time.Second,
+		ReadHeaderTimeout: 5 * time.Second,
+		IdleTimeout:       120 * time.Second,
 	}
 
 	log.Info().Msgf("Starting HTTP/2 server on %s", serverPort)

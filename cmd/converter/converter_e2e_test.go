@@ -25,8 +25,8 @@ func TestWebpToJpgE2E(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create form file: %v", err)
 	}
-	if _, err := io.Copy(part, file); err != nil {
-		t.Fatalf("failed to copy file data: %v", err)
+	if _, copyErr := io.Copy(part, file); copyErr != nil {
+		t.Fatalf("failed to copy file data: %v", copyErr)
 	}
 	writer.Close()
 
