@@ -1,0 +1,34 @@
+name: E2E Test
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master, develop ]
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.24.1'
+        cache: true
+
+    - name: Build converter service
+      run: go build -o webp-converter ./cmd/converter
+
+    - name: Start converter service
+      run: |
+        ./webp-converter &
+        sleep 2 # Give the server time to start
+
+    - name: Run E2E test
+      run: go test -v ./cmd/converter/converter_e2e_test.go
+
+    - name: Kill converter service
+      run: pkill webp-converter || true
