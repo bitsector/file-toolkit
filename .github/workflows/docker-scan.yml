@@ -1,0 +1,45 @@
+name: Docker Scan
+
+on:
+  repository_dispatch:
+    types: [docker-build-complete]
+
+env:
+  REGISTRY: docker.io
+  IMAGE_NAME: antonbiz/file-toolkit
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    
+    steps:
+    - name: Run Trivy vulnerability scanner
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ github.event.client_payload.image-digest }}
+        format: 'sarif'
+        output: 'trivy-results.sarif'
+
+    - name: Upload Trivy scan results to GitHub Security tab
+      uses: github/codeql-action/upload-sarif@v2
+      if: always()
+      with:
+        sarif_file: 'trivy-results.sarif'
+
+    - name: Trigger push workflow
+      if: success() && github.event.client_payload.ref != 'refs/pull/'
+      uses: peter-evans/repository-dispatch@v3
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        event-type: docker-scan-complete
+        client-payload: |
+          {
+            "image-digest": "${{ github.event.client_payload.image-digest }}",
+            "image-metadata": ${{ github.event.client_payload.image-metadata }},
+            "image-tags": "${{ github.event.client_payload.image-tags }}",
+            "ref": "${{ github.event.client_payload.ref }}",
+            "sha": "${{ github.event.client_payload.sha }}"
+          }

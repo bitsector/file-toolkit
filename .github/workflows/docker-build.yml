@@ -1,4 +1,4 @@
-name: Docker Build and Push
+name: Docker Build
 
 on:
   push:
@@ -12,12 +12,16 @@ env:
   IMAGE_NAME: antonbiz/file-toolkit
 
 jobs:
-  docker:
+  build:
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
-
+    outputs:
+      image-digest: ${{ steps.build.outputs.digest }}
+      image-metadata: ${{ steps.meta.outputs.json }}
+      image-tags: ${{ steps.meta.outputs.tags }}
+    
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
@@ -47,25 +51,29 @@ jobs:
           type=raw,value=latest,enable={{is_default_branch}}
 
     - name: Build Docker image
+      id: build
       uses: docker/build-push-action@v5
       with:
         context: .
         file: ./Dockerfile
         platforms: linux/amd64
-        push: false
-        tags: ${{ steps.meta.outputs.tags }}
-        labels: ${{ steps.meta.outputs.labels }}
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
-        load: true
-
-    - name: Push Docker image
-      uses: docker/build-push-action@v5
-      with:
-        context: .
-        file: ./Dockerfile
-        platforms: linux/amd64,linux/arm64
         push: true
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
         cache-from: type=gha
+        cache-to: type=gha,mode=max
+        outputs: type=image,name=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }},push-by-digest=true,name-canonical=true,push=true
+
+    - name: Trigger scan workflow
+      uses: peter-evans/repository-dispatch@v3
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        event-type: docker-build-complete
+        client-payload: |
+          {
+            "image-digest": "${{ steps.build.outputs.digest }}",
+            "image-metadata": ${{ steps.meta.outputs.json }},
+            "image-tags": "${{ steps.meta.outputs.tags }}",
+            "ref": "${{ github.ref }}",
+            "sha": "${{ github.sha }}"
+          }
