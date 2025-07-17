@@ -71,8 +71,8 @@ jobs:
         client-payload: |
           {
             "image-digest": "${{ steps.build.outputs.digest }}",
-            "image-metadata": ${{ steps.meta.outputs.json }},
-            "image-tags": "${{ steps.meta.outputs.tags }}",
+            "image-name": "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}",
             "ref": "${{ github.ref }}",
-            "sha": "${{ github.sha }}"
+            "sha": "${{ github.sha }}",
+            "run-id": "${{ github.run_id }}"
           }

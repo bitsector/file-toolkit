@@ -16,19 +16,10 @@ jobs:
       security-events: write
     
     steps:
-    - name: Determine image tag to scan
-      id: tag
-      run: |
-        # Extract the first tag from the tags string
-        TAGS="${{ github.event.client_payload.image-tags }}"
-        FIRST_TAG=$(echo "$TAGS" | tr ' ' '\n' | head -1)
-        echo "tag=$FIRST_TAG" >> $GITHUB_OUTPUT
-        echo "Will scan: $FIRST_TAG"
-
     - name: Run Trivy vulnerability scanner
       uses: aquasecurity/trivy-action@master
       with:
-        image-ref: ${{ steps.tag.outputs.tag }}
+        image-ref: ${{ github.event.client_payload.image-name }}:main
         format: 'sarif'
         output: 'trivy-results.sarif'
 
@@ -39,16 +30,15 @@ jobs:
         sarif_file: 'trivy-results.sarif'
 
     - name: Trigger push workflow
-      if: success() && github.event.client_payload.ref != 'refs/pull/'
+      if: success() && !contains(github.event.client_payload.ref, 'refs/pull/')
       uses: peter-evans/repository-dispatch@v3
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
         event-type: docker-scan-complete
         client-payload: |
           {
-            "image-digest": "${{ github.event.client_payload.image-digest }}",
-            "image-metadata": ${{ github.event.client_payload.image-metadata }},
-            "image-tags": "${{ github.event.client_payload.image-tags }}",
+            "image-name": "${{ github.event.client_payload.image-name }}",
             "ref": "${{ github.event.client_payload.ref }}",
-            "sha": "${{ github.event.client_payload.sha }}"
+            "sha": "${{ github.event.client_payload.sha }}",
+            "run-id": "${{ github.event.client_payload.run-id }}"
           }
