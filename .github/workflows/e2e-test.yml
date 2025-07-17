@@ -20,15 +20,15 @@ jobs:
         cache: true
 
     - name: Build converter service
-      run: go build -o webp-converter ./cmd/converter
+      run: go build -o file-toolbox ./cmd/converter
 
     - name: Start converter service
       run: |
-        ./webp-converter &
+        ./file-toolbox &
         sleep 2 # Give the server time to start
 
     - name: Run E2E test
       run: go test -v ./cmd/converter/converter_e2e_test.go
 
     - name: Kill converter service
-      run: pkill webp-converter || true
+      run: pkill file-toolbox || true

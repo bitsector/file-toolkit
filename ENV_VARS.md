@@ -60,14 +60,14 @@ go run ./cmd/converter
 
 ```bash
 # Build image
-docker build -t webp-converter .
+docker build -t file-toolbox .
 
 # Run with environment variables
 docker run -p 3000:3000 \
   -e NUM_WORKERS=10 \
   -e JOB_TIMEOUT=60s \
   -e BUFFER_SIZE=20971520 \
-  webp-converter
+  file-toolbox
 ```
 
 ### Docker Compose
@@ -87,7 +87,7 @@ docker-compose --env-file .env up
 kubectl apply -f k8s-deployment.yaml
 
 # Or use ConfigMap/Secrets
-kubectl create configmap webp-converter-config --from-env-file=.env
+kubectl create configmap file-toolbox-config --from-env-file=.env
 ```
 
 ## Performance Tuning

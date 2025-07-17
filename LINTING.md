@@ -1,4 +1,4 @@
-# WebP Converter - Linting Guide
+# File Toolbox - Linting Guide
 
 ## GitHub Actions
 

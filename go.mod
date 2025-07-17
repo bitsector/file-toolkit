@@ -1,4 +1,4 @@
-module github.com/bitsector/webp-converter
+module github.com/bitsector/file-toolbox
 
 go 1.24.1
 

@@ -1,5 +1,5 @@
-# webp-to-jpg-converter
-Golang service to convert .webp files to .jpg format
+# file-toolbox
+Golang service for file processing operations including WebP to JPG conversion
 
 ### Usage example
 

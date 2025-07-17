@@ -11,3 +11,9 @@
 *.jpg
 *.jpeg
 *.png
+
+# Ignore compiled binary
+file-toolbox
+
+# Ignore Firebase debug log
+firebase-debug.log
