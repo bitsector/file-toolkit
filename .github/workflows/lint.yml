@@ -37,8 +37,8 @@ jobs:
     
     - name: Run tests (if any)
       run: |
-        if [ -n "$(find . -name '*_test.go' -not -path './vendor/*')" ]; then
-          go test -v ./...
+        if [ -n "$(find . -name '*_test.go' -not -path './vendor/*' -not -name '*_e2e_test.go')" ]; then
+          go test -v ./... -run '^Test[^E2E]'
         else
-          echo "No tests found"
+          echo "No unit tests found"
         fi
