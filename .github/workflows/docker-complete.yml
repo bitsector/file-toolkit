@@ -83,6 +83,15 @@ jobs:
         echo "Security scan results:"
         cat trivy-results.txt
 
+    - name: Add scan summary to workflow run
+      if: always()
+      run: |
+        echo "## Trivy Security Scan Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo '```' >> $GITHUB_STEP_SUMMARY
+        cat trivy-results.txt >> $GITHUB_STEP_SUMMARY
+        echo '```' >> $GITHUB_STEP_SUMMARY
+
   push:
     runs-on: ubuntu-latest
     needs: [build, scan]
