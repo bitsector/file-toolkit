@@ -28,7 +28,7 @@ jobs:
         sleep 2 # Give the server time to start
 
     - name: Run E2E test
-      run: go test -v ./cmd/converter/converter_e2e_test.go
+      run: go test -v ./cmd/converter/
 
     - name: Kill converter service
       run: pkill file-toolbox || true
