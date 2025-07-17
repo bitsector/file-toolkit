@@ -7,6 +7,9 @@
 # Unignore all directories so that files within them can be evaluated
 !*/
 
+# Unignore specific files without extensions
+!Dockerfile
+
 # Explicitly ignore image formats (except .webp)
 *.jpg
 *.jpeg
