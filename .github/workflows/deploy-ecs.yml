@@ -136,6 +136,6 @@ jobs:
           --query 'NetworkInterfaces[0].Association.PublicIp' \
           --output text)
         
-        echo "🚀 Deployment successful!"
+        echo "🚀🚀 Deployment successful!"
         echo "Service URL: http://$PUBLIC_IP:3000"
         echo "Health check: http://$PUBLIC_IP:3000/health"
