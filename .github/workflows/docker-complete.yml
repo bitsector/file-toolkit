@@ -74,14 +74,14 @@ jobs:
       uses: aquasecurity/trivy-action@master
       with:
         image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ needs.build.outputs.image-digest }}
-        format: 'sarif'
-        output: 'trivy-results.sarif'
+        format: 'table'
+        output: 'trivy-results.txt'
 
-    - name: Upload Trivy scan results to GitHub Security tab
-      uses: github/codeql-action/upload-sarif@v2
+    - name: Display scan results
       if: always()
-      with:
-        sarif_file: 'trivy-results.sarif'
+      run: |
+        echo "Security scan results:"
+        cat trivy-results.txt
 
   push:
     runs-on: ubuntu-latest
