@@ -1,0 +1,145 @@
+name: Deploy to ECS
+
+on:
+  workflow_run:
+    workflows: ["Docker Build, Scan and Push"]
+    types:
+      - completed
+    branches: [main, master, develop]
+
+env:
+  AWS_REGION: us-east-1
+  REGISTRY: docker.io
+  IMAGE_NAME: antonbiz/file-toolkit
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    permissions:
+      contents: read
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+
+    - name: Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v2
+
+    - name: Create ECS task definition
+      run: |
+        cat > task-definition.json << EOF
+        {
+          "family": "file-toolkit-task",
+          "networkMode": "awsvpc",
+          "requiresCompatibilities": ["FARGATE"],
+          "cpu": "256",
+          "memory": "512",
+          "executionRoleArn": "arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/ecsTaskExecutionRole",
+          "containerDefinitions": [
+            {
+              "name": "file-toolkit",
+              "image": "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest",
+              "portMappings": [
+                {
+                  "containerPort": 3000,
+                  "protocol": "tcp"
+                }
+              ],
+              "essential": true,
+              "logConfiguration": {
+                "logDriver": "awslogs",
+                "options": {
+                  "awslogs-group": "/ecs/file-toolkit",
+                  "awslogs-region": "${{ env.AWS_REGION }}",
+                  "awslogs-stream-prefix": "ecs"
+                }
+              },
+              "environment": [
+                {
+                  "name": "PORT",
+                  "value": "3000"
+                },
+                {
+                  "name": "NUM_WORKERS",
+                  "value": "5"
+                }
+              ]
+            }
+          ]
+        }
+        EOF
+
+    - name: Create CloudWatch log group
+      run: |
+        aws logs create-log-group --log-group-name /ecs/file-toolkit --region ${{ env.AWS_REGION }} || true
+
+    - name: Register ECS task definition
+      id: task-def
+      run: |
+        TASK_DEF_ARN=$(aws ecs register-task-definition \
+          --cli-input-json file://task-definition.json \
+          --query 'taskDefinition.taskDefinitionArn' \
+          --output text)
+        echo "task-def-arn=$TASK_DEF_ARN" >> $GITHUB_OUTPUT
+
+    - name: Create or update ECS service
+      run: |
+        # Check if service exists
+        if aws ecs describe-services \
+          --cluster ${{ secrets.ECS_CLUSTER_NAME }} \
+          --services file-toolkit-service \
+          --query 'services[0].serviceName' \
+          --output text 2>/dev/null | grep -q "file-toolkit-service"; then
+          
+          echo "Service exists, updating..."
+          aws ecs update-service \
+            --cluster ${{ secrets.ECS_CLUSTER_NAME }} \
+            --service file-toolkit-service \
+            --task-definition ${{ steps.task-def.outputs.task-def-arn }} \
+            --force-new-deployment
+        else
+          echo "Service doesn't exist, creating..."
+          aws ecs create-service \
+            --cluster ${{ secrets.ECS_CLUSTER_NAME }} \
+            --service-name file-toolkit-service \
+            --task-definition ${{ steps.task-def.outputs.task-def-arn }} \
+            --desired-count 1 \
+            --launch-type FARGATE \
+            --network-configuration "awsvpcConfiguration={subnets=[${{ secrets.SUBNET_ID }}],securityGroups=[${{ secrets.SECURITY_GROUP_ID }}],assignPublicIp=ENABLED}"
+        fi
+
+    - name: Wait for deployment to complete
+      run: |
+        aws ecs wait services-stable \
+          --cluster ${{ secrets.ECS_CLUSTER_NAME }} \
+          --services file-toolkit-service
+
+    - name: Get service URL
+      run: |
+        TASK_ARN=$(aws ecs list-tasks \
+          --cluster ${{ secrets.ECS_CLUSTER_NAME }} \
+          --service-name file-toolkit-service \
+          --query 'taskArns[0]' \
+          --output text)
+        
+        PUBLIC_IP=$(aws ecs describe-tasks \
+          --cluster ${{ secrets.ECS_CLUSTER_NAME }} \
+          --tasks $TASK_ARN \
+          --query 'tasks[0].attachments[0].details[?name==`networkInterfaceId`].value' \
+          --output text | xargs -I {} aws ec2 describe-network-interfaces \
+          --network-interface-ids {} \
+          --query 'NetworkInterfaces[0].Association.PublicIp' \
+          --output text)
+        
+        echo "🚀 Deployment successful!"
+        echo "Service URL: http://$PUBLIC_IP:3000"
+        echo "Health check: http://$PUBLIC_IP:3000/health"
