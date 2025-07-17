@@ -1,0 +1,24 @@
+[tool.poetry]
+name = "text-analysis-api"
+version = "0.1.0"
+description = "FastAPI application for text analysis with OCR capabilities"
+authors = ["Your Name <your.email@example.com>"]
+package-mode = false
+
+[tool.poetry.dependencies]
+python = "^3.13"
+fastapi = "^0.104.1"
+uvicorn = {extras = ["standard"], version = "^0.24.0"}
+python-multipart = "^0.0.6"
+pytesseract = "^0.3.10"
+pillow = "^10.1.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^7.4.3"
+black = "^23.11.0"
+flake8 = "^6.1.0"
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
