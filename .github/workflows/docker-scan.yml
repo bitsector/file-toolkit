@@ -16,10 +16,19 @@ jobs:
       security-events: write
     
     steps:
+    - name: Determine image tag to scan
+      id: tag
+      run: |
+        # Extract the first tag from the tags string
+        TAGS="${{ github.event.client_payload.image-tags }}"
+        FIRST_TAG=$(echo "$TAGS" | tr ' ' '\n' | head -1)
+        echo "tag=$FIRST_TAG" >> $GITHUB_OUTPUT
+        echo "Will scan: $FIRST_TAG"
+
     - name: Run Trivy vulnerability scanner
       uses: aquasecurity/trivy-action@master
       with:
-        image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ github.event.client_payload.image-digest }}
+        image-ref: ${{ steps.tag.outputs.tag }}
         format: 'sarif'
         output: 'trivy-results.sarif'
 

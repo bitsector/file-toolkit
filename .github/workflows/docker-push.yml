@@ -16,6 +16,9 @@ jobs:
       packages: write
     
     steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
 
@@ -26,18 +29,15 @@ jobs:
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_TOKEN }}
 
-    - name: Create manifest list and push
-      working-directory: /tmp
-      run: |
-        # Parse the metadata JSON to extract tags
-        echo '${{ github.event.client_payload.image-metadata }}' > metadata.json
-        
-        # Create the manifest with proper tags
-        docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' < metadata.json) \
-          ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ github.event.client_payload.image-digest }}
-        
-        echo "Successfully pushed image with tags:"
-        jq -r '.tags[]' < metadata.json
+    - name: Build and push multi-platform image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: ./Dockerfile
+        platforms: linux/amd64,linux/arm64
+        push: true
+        tags: ${{ github.event.client_payload.image-tags }}
+        cache-from: type=gha
 
     - name: Image pushed successfully
       run: |
