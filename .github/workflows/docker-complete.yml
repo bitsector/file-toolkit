@@ -9,7 +9,7 @@ on:
 
 env:
   REGISTRY: docker.io
-  IMAGE_NAME: antonbiz/file-toolkit
+  IMAGE_NAME: ${{ secrets.DOCKER_USERNAME }}/file-toolkit
 
 jobs:
   build:

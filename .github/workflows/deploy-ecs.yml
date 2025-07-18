@@ -10,7 +10,7 @@ on:
 env:
   AWS_REGION: us-east-1
   REGISTRY: docker.io
-  IMAGE_NAME: antonbiz/file-toolkit
+  IMAGE_NAME: ${{ secrets.DOCKER_USERNAME }}/file-toolkit
 
 jobs:
   deploy:
